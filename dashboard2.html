@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Conciliacao Banco x Sistema - SO LAJES</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="tx_data.js"></script>
+<script src="db_data.js"></script>
+<script src="system_data.js"></script>
+<script src="system_tx.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Inter,system-ui,sans-serif;background:#0f172a;color:#f1f5f9;min-height:100vh}
+.c{max-width:1400px;margin:0 auto;padding:24px}
+.hdr{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid #334155}
+.hdr h1{font-size:26px;font-weight:800}.hdr h1 em{color:#3b82f6;font-style:normal}
+.hi{text-align:right;color:#94a3b8;font-size:13px}.hi b{color:#f1f5f9}
+.tabs{display:flex;gap:4px;margin-bottom:24px;background:#1e293b;padding:4px;border-radius:10px;width:fit-content;flex-wrap:wrap}
+.tb{padding:10px 24px;border:none;border-radius:8px;background:0;color:#94a3b8;cursor:pointer;font-family:inherit;font-size:14px;font-weight:500;transition:.2s}
+.tb:hover{color:#f1f5f9}.tb.on{background:#3b82f6;color:#fff}
+.tc{display:none}.tc.on{display:block}
+.yf{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.yb{padding:8px 20px;border:1px solid #334155;border-radius:8px;background:#1e293b;color:#94a3b8;cursor:pointer;font-family:inherit;font-size:14px;font-weight:500;transition:.2s}
+.yb:hover{background:#334155;color:#f1f5f9}.yb.on{background:#3b82f6;border-color:#3b82f6;color:#fff}
+.kg{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:28px}
+.kc{background:#1e293b;border-radius:12px;padding:20px;border:1px solid #334155;transition:transform .2s}
+.kc:hover{transform:translateY(-2px)}
+.kl{font-size:12px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.kv{font-size:22px;font-weight:700}.kv.g{color:#22c55e}.kv.r{color:#ef4444}.kv.b{color:#3b82f6}.kv.y{color:#eab308}
+.ks{font-size:11px;color:#94a3b8;margin-top:4px}
+.cg{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px}
+.cc{background:#1e293b;border-radius:12px;padding:20px;border:1px solid #334155}
+.cc h3{font-size:15px;font-weight:600;margin-bottom:14px}.cw{position:relative;height:280px}
+.tc2{background:#1e293b;border-radius:12px;padding:20px;border:1px solid #334155;margin-bottom:28px;overflow-x:auto}
+.tc2 h3{font-size:15px;font-weight:600;margin-bottom:14px}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:10px 14px;border-bottom:2px solid #334155;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8;position:sticky;top:0;background:#1e293b;z-index:10}
+td{padding:8px 14px;border-bottom:1px solid #334155;font-size:13px}
+tbody tr:hover{background:#334155}
+.vg{color:#22c55e;font-weight:600}.vr{color:#ef4444;font-weight:600}.vb{color:#3b82f6;font-weight:600}.vy{color:#eab308;font-weight:600}
+.tw{max-height:600px;overflow-y:auto;border-radius:8px;border:1px solid #334155}
+.tw::-webkit-scrollbar{width:6px}.tw::-webkit-scrollbar-thumb{background:#334155;border-radius:3px}
+.badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600;text-transform:uppercase}
+.badge.ok{background:rgba(34,197,94,.12);color:#22c55e}.badge.dif{background:rgba(239,68,68,.12);color:#ef4444}.badge.adj{background:rgba(234,179,8,.12);color:#eab308}
+.badge.bank{background:rgba(59,130,246,.12);color:#3b82f6}.badge.sys{background:rgba(168,85,247,.12);color:#a855f7}
+.mo{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);z-index:1000;justify-content:center;align-items:center;padding:20px}
+.mo.on{display:flex}
+.md{background:#1e293b;border-radius:12px;padding:24px;max-width:900px;width:100%;max-height:80vh;overflow-y:auto;border:1px solid #334155}
+.mh{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #334155}
+.mh h3{font-size:16px}
+.mc{background:0;border:none;color:#94a3b8;font-size:22px;cursor:pointer;padding:4px 8px;border-radius:6px}
+.mc:hover{background:#334155;color:#f1f5f9}
+.adj-card{background:#0f172a;border-radius:8px;padding:16px;margin-bottom:12px;border-left:4px solid}
+.adj-card.in{border-color:#22c55e}.adj-card.out{border-color:#ef4444}.adj-card.neutral{border-color:#3b82f6}
+.adj-title{font-size:14px;font-weight:600;margin-bottom:8px}
+.adj-detail{font-size:12px;color:#94a3b8;line-height:1.6}
+.adj-valor{font-size:18px;font-weight:700;margin-top:8px}
+/* Analytical tab styles */
+.month-sel{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap;align-items:center}
+.month-sel label{font-size:13px;color:#94a3b8;margin-right:8px}
+.month-sel select{background:#0f172a;color:#f1f5f9;border:1px solid #334155;border-radius:8px;padding:10px 16px;font-family:inherit;font-size:14px;cursor:pointer;min-width:160px}
+.month-sel select:focus{outline:none;border-color:#3b82f6}
+.dual-panel{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px}
+.panel{background:#1e293b;border-radius:12px;border:1px solid #334155;overflow:hidden}
+.panel-header{padding:16px 20px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center}
+.panel-header h3{font-size:14px;font-weight:600}
+.panel-body{max-height:500px;overflow-y:auto}
+.panel-body::-webkit-scrollbar{width:6px}.panel-body::-webkit-scrollbar-thumb{background:#334155;border-radius:3px}
+.tx-row{display:flex;justify-content:space-between;align-items:center;padding:10px 20px;border-bottom:1px solid #334155;font-size:13px;transition:background .15s}
+.tx-row:hover{background:#334155}
+.tx-row .tx-date{width:80px;color:#94a3b8;font-size:12px;flex-shrink:0}
+.tx-row .tx-desc{flex:1;margin:0 12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tx-row .tx-valor{width:120px;text-align:right;font-weight:600;flex-shrink:0}
+.tx-row .tx-pessoa{font-size:11px;color:#94a3b8;margin-top:2px}
+.tx-row.entrada .tx-valor{color:#22c55e}
+.tx-row.saida .tx-valor{color:#ef4444}
+.filter-bar{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.filter-bar input{background:#0f172a;color:#f1f5f9;border:1px solid #334155;border-radius:8px;padding:8px 14px;font-family:inherit;font-size:13px;min-width:200px}
+.filter-bar input:focus{outline:none;border-color:#3b82f6}
+.filter-bar select{background:#0f172a;color:#f1f5f9;border:1px solid #334155;border-radius:8px;padding:8px 14px;font-family:inherit;font-size:13px;cursor:pointer}
+.summary-bar{display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap}
+.summary-item{padding:10px 16px;background:#0f172a;border-radius:8px;border:1px solid #334155}
+.summary-item .label{font-size:11px;color:#94a3b8;text-transform:uppercase}
+.summary-item .value{font-size:16px;font-weight:700;margin-top:2px}
+.tx-row.matched{opacity:.4;background:rgba(34,197,94,.03)!important}
+.tx-row.unmatched{border-left:3px solid #ef4444}
+.highlight{background:rgba(234,179,8,.15)!important}
+@media(max-width:900px){.cg,.dual-panel{grid-template-columns:1fr}.hdr{flex-direction:column;text-align:center}.hi{text-align:center}.kg{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:500px){.kg{grid-template-columns:1fr}.c{padding:12px}.tabs{width:100%}.tb{flex:1;text-align:center;font-size:12px;padding:8px 12px}}
+</style>
+</head>
+<body>
+<div class="c">
+<div class="hdr">
+<h1><em>Conciliacao</em> Banco x Sistema</h1>
+<div class="hi"><div><b>SO LAJES</b></div><div>CNPJ: 14.643.142/0002-62</div><div>Agencia 7314 | Conta 0096669-3</div><div>Periodo: Jan/2025 a Abr/2026</div></div>
+</div>
+<div class="tabs">
+<button class="tb on" onclick="sw('visao')">Visao Geral</button>
+<button class="tb" onclick="sw('conc')">Conciliacao Mensal</button>
+<button class="tb" onclick="sw('ajustes')">Ajustes Necessarios</button>
+<button class="tb" onclick="sw('analitico')">Analitico (Auditoria)</button>
+</div>
+
+<div class="tc on" id="tab-visao">
+<div class="yf" id="yf"></div>
+<div class="kg" id="kpi-geral"></div>
+<div class="cg">
+<div class="cc"><h3>Entradas: Banco vs Sistema</h3><div class="cw"><canvas id="chart-entradas"></canvas></div></div>
+<div class="cc"><h3>Saidas: Banco vs Sistema</h3><div class="cw"><canvas id="chart-saidas"></canvas></div></div>
+</div>
+<div class="cc" style="margin-bottom:28px"><h3>Evolucao do Saldo - Banco vs Sistema</h3><div class="cw"><canvas id="chart-saldo"></canvas></div></div>
+</div>
+
+<div class="tc" id="tab-conc">
+<div class="tc2"><h3>Conciliacao Mensal Detalhada</h3>
+<div style="overflow-x:auto"><table>
+<thead><tr>
+<th>Mes/Ano</th>
+<th style="text-align:right">Entradas Banco</th>
+<th style="text-align:right">Entradas Sistema</th>
+<th style="text-align:right">Dif Entradas</th>
+<th style="text-align:right">Saidas Banco</th>
+<th style="text-align:right">Saidas Sistema</th>
+<th style="text-align:right">Dif Saidas</th>
+<th style="text-align:right">Saldo Banco</th>
+<th style="text-align:right">Saldo Sistema</th>
+<th style="text-align:right">Dif Saldo</th>
+<th style="text-align:center">Status</th>
+</tr></thead>
+<tbody id="conc-tbody"></tbody>
+</table></div></div>
+</div>
+
+<div class="tc" id="tab-ajustes">
+<div class="kg" id="kpi-ajustes"></div>
+<div class="tc2"><h3>Ajustes Mensais Necessarios para Conciliar</h3>
+<p style="color:#94a3b8;font-size:13px;margin-bottom:16px">Para cada mes, mostra o que precisa ser registrado no sistema para que o saldo do sistema iguale ao saldo do banco.</p>
+<div id="ajustes-list"></div>
+</div>
+<div class="tc2"><h3>Resumo dos Ajustes</h3>
+<div style="overflow-x:auto"><table>
+<thead><tr><th>Mes/Ano</th><th style="text-align:right">Saldo Banco</th><th style="text-align:right">Saldo Sistema (acumulado)</th><th style="text-align:right">Diferenca</th><th style="text-align:right">Ajuste Necessario</th><th>Tipo do Ajuste</th></tr></thead>
+<tbody id="ajustes-tbody"></tbody>
+</table></div></div>
+</div>
+
+<div class="tc" id="tab-analitico">
+<div class="month-sel">
+<label>Filtrar mes:</label>
+<select id="sel-mes" onchange="renderAnalitico()"></select>
+<label style="margin-left:16px">Tipo:</label>
+<select id="sel-tipo" onchange="renderAnalitico()">
+<option value="todos">Todos</option>
+<option value="entrada">Somente Entradas</option>
+<option value="saida">Somente Saidas</option>
+</select>
+<label style="margin-left:16px">Buscar:</label>
+<input type="text" id="sel-busca" placeholder="Descricao ou pessoa..." oninput="renderAnalitico()">
+</div>
+
+<div class="summary-bar" id="ana-summary"></div>
+
+<div class="tc2">
+<h3>Reconciliacao por Data + Valor</h3>
+<p style="color:#94a3b8;font-size:12px;margin-bottom:12px">Compara transacoes do banco e sistema por <b>data + valor</b>. Transacoes que combinam ficam com opacidade reduzida. As que nao combinam sao as que precisam auditoria.</p>
+<div id="ana-diff-list"></div>
+</div>
+
+<div class="dual-panel">
+<div class="panel">
+<div class="panel-header">
+<h3><span class="badge bank">BANCO</span> Transacoes</h3>
+<span id="bank-count" style="font-size:12px;color:#94a3b8"></span>
+</div>
+<div class="panel-body" id="bank-tx-list"></div>
+</div>
+<div class="panel">
+<div class="panel-header">
+<h3><span class="badge sys">SISTEMA</span> Transacoes</h3>
+<span id="sys-count" style="font-size:12px;color:#94a3b8"></span>
+</div>
+<div class="panel-body" id="sys-tx-list"></div>
+</div>
+</div>
+
+<div class="tc2">
+<h3>Todas as Transacoes do Mes (Consolidado)</h3>
+<div style="overflow-x:auto"><table>
+<thead><tr>
+<th>Fonte</th>
+<th>Data</th>
+<th>Descricao</th>
+<th>Pessoa / Empresa</th>
+<th style="text-align:right">Entrada</th>
+<th style="text-align:right">Saida</th>
+<th style="text-align:center">Status</th>
+</tr></thead>
+<tbody id="ana-all-tbody"></tbody>
+</table></div>
+</div>
+</div>
+
+</div>
+
+<div class="mo" id="modal"><div class="md"><div class="mh"><h3 id="modal-title">Detalhes</h3><button class="mc" onclick="cm()">&times;</button></div><div id="modal-body"></div></div></div>
+
+<script>
+var cy='todos',chartE,chartS,chartSaldo;
+
+function fmt(n){return n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function pd(s){if(!s)return null;var p=s.split('/');return p.length===3?new Date(p[2],p[1]-1,p[0]):null}
+function gm(d){return d?d.substring(3):''}
+function gmn(m){var p=m.split('/');var n=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];return n[parseInt(p[0])-1]+'/'+p[1]}
+
+function sw(t){
+  document.querySelectorAll('.tb').forEach(function(b){b.classList.remove('on')});
+  document.querySelectorAll('.tc').forEach(function(c){c.classList.remove('on')});
+  document.querySelector('.tb[onclick="sw(\''+t+'\')"]').classList.add('on');
+  document.getElementById('tab-'+t).classList.add('on');
+}
+
+// Build bank monthly data from TX_DATA
+var BANK_MONTHLY=(function(){
+  var m={};
+  TX_DATA.forEach(function(t){
+    var mk=gm(t.date);
+    if(!mk)return;
+    if(!m[mk])m[mk]={month:mk,monthName:gmn(mk),entradas:0,saidas:0,count:0};
+    var v=t.valor||0;
+    if(v>=0)m[mk].entradas+=v;else m[mk].saidas+=Math.abs(v);
+    m[mk].count++;
+  });
+  var arr=Object.values(m).sort(function(a,b){
+    var pa=a.month.split('/').map(Number);var pb=b.month.split('/').map(Number);
+    return pa[1]!==pb[1]?pa[1]-pb[1]:pa[0]-pb[0];
+  });
+  arr.forEach(function(m2){
+    var mb=DB_DATA.filter(function(b){return gm(b.date)===m2.month});
+    m2.bankBalance=mb.length>0?mb[mb.length-1].saldo:null;
+  });
+  return arr;
+})();
+
+var SYS_MONTHLY=(function(){
+  var arr=[];
+  SYSTEM_DATA.forEach(function(s){
+    arr.push({month:s.month,monthName:s.monthName,entradas:s.entradas,saidas:s.saidas,saldoFinal:s.lastSaldo,count:s.count});
+  });
+  return arr;
+})();
+
+var RECONC=(function(){
+  var result=[];
+  var bankByMonth={};
+  BANK_MONTHLY.forEach(function(b){bankByMonth[b.month]=b});
+  var sysByMonth={};
+  SYS_MONTHLY.forEach(function(s){sysByMonth[s.month]=s});
+  var allMonths={};
+  BANK_MONTHLY.forEach(function(b){allMonths[b.month]=1});
+  SYS_MONTHLY.forEach(function(s){allMonths[s.month]=1});
+  var sortedMonths=Object.keys(allMonths).sort(function(a,b){
+    var pa=a.split('/').map(Number);var pb=b.split('/').map(Number);
+    return pa[1]!==pb[1]?pa[1]-pb[1]:pa[0]-pb[0];
+  });
+  var prevBankBalance=0;
+  var initBank=DB_DATA.filter(function(b){return b.date==='31/12/2024'});
+  if(initBank.length>0)prevBankBalance=initBank[0].saldo;
+  sortedMonths.forEach(function(mk){
+    var bank=bankByMonth[mk]||{entradas:0,saidas:0,bankBalance:null,count:0};
+    var sys=sysByMonth[mk]||{entradas:0,saidas:0,saldoFinal:0,count:0};
+    var bankBalEnd=bank.bankBalance!==null?bank.bankBalance:prevBankBalance;
+    var sysBalEnd=sys.saldoFinal;
+    var difSaldo=sysBalEnd-bankBalEnd;
+    var ajuste=bankBalEnd-sysBalEnd;
+    result.push({month:mk,monthName:bank.monthName||sys.monthName||gmn(mk),bankEntradas:bank.entradas,sysEntradas:sys.entradas,difEntradas:sys.entradas-bank.entradas,bankSaidas:bank.saidas,sysSaidas:sys.saidas,difSaidas:sys.saidas-bank.saidas,bankBalance:bankBalEnd,sysBalance:sysBalEnd,difSaldo:difSaldo,ajuste:ajuste,bankCount:bank.count,sysCount:sys.count});
+    prevBankBalance=bankBalEnd;
+  });
+  return result;
+})();
+
+function gf(){return cy==='todos'?RECONC:RECONC.filter(function(r){return r.month.split('/')[1]===cy})}
+
+function iyf(){
+  var years=[];
+  RECONC.forEach(function(r){var y=r.month.split('/')[1];if(years.indexOf(y)<0)years.push(y)});
+  years.sort();
+  var h='<button class="yb on" data-y="todos">Todos</button>';
+  years.forEach(function(y){h+='<button class="yb" data-y="'+y+'">'+y+'</button>'});
+  document.getElementById('yf').innerHTML=h;
+  document.querySelectorAll('.yb').forEach(function(b){
+    b.addEventListener('click',function(){
+      document.querySelectorAll('.yb').forEach(function(x){x.classList.remove('on')});
+      this.classList.add('on');
+      cy=this.dataset.y;
+      rk();rc();rconc();raj();
+    });
+  });
+}
+
+function rk(){
+  var d=gf();
+  var totalBankE=0,totalBankS=0,totalSysE=0,totalSysS=0;
+  d.forEach(function(r){totalBankE+=r.bankEntradas;totalBankS+=r.bankSaidas;totalSysE+=r.sysEntradas;totalSysS+=r.sysSaidas});
+  var lastR=d[d.length-1];
+  var bankBal=lastR?lastR.bankBalance:0;
+  var sysBal=lastR?lastR.sysBalance:0;
+  var difBal=sysBal-bankBal;
+  var totalAjuste=bankBal-sysBal;
+  var h='';
+  h+='<div class="kc"><div class="kl">Saldo Banco (Atual)</div><div class="kv b">R$ '+fmt(bankBal)+'</div><div class="ks">Saldo real do banco</div></div>';
+  h+='<div class="kc"><div class="kl">Saldo Sistema (Acumulado)</div><div class="kv y">R$ '+fmt(sysBal)+'</div><div class="ks">Livro caixa acumulado</div></div>';
+  h+='<div class="kc"><div class="kl">Diferenca Saldo</div><div class="kv '+(difBal>=0?'g':'r')+'">R$ '+fmt(difBal)+'</div><div class="ks">'+(difBal>=0?'Sistema acima':'Banco acima')+'</div></div>';
+  h+='<div class="kc"><div class="kl">Ajuste Necessario</div><div class="kv '+(totalAjuste>=0?'g':'r')+'">R$ '+fmt(totalAjuste)+'</div><div class="ks">'+(totalAjuste>=0?'Entrada no sistema':'Saida no sistema')+'</div></div>';
+  h+='<div class="kc"><div class="kl">Entradas Banco (Total)</div><div class="kv g">R$ '+fmt(totalBankE)+'</div><div class="ks">'+d.length+' meses</div></div>';
+  h+='<div class="kc"><div class="kl">Entradas Sistema (Total)</div><div class="kv g">R$ '+fmt(totalSysE)+'</div><div class="ks">'+d.length+' meses</div></div>';
+  h+='<div class="kc"><div class="kl">Saidas Banco (Total)</div><div class="kv r">R$ '+fmt(totalBankS)+'</div><div class="ks">'+d.length+' meses</div></div>';
+  h+='<div class="kc"><div class="kl">Saidas Sistema (Total)</div><div class="kv r">R$ '+fmt(totalSysS)+'</div><div class="ks">'+d.length+' meses</div></div>';
+  document.getElementById('kpi-geral').innerHTML=h;
+}
+
+function rc(){
+  var d=gf();
+  var labels=d.map(function(r){return r.monthName});
+  if(chartE)chartE.destroy();
+  chartE=new Chart(document.getElementById('chart-entradas'),{type:'bar',data:{labels:labels,datasets:[{label:'Banco',data:d.map(function(r){return r.bankEntradas}),backgroundColor:'rgba(59,130,246,.7)',borderRadius:4},{label:'Sistema',data:d.map(function(r){return r.sysEntradas}),backgroundColor:'rgba(34,197,94,.7)',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8'}}},scales:{x:{ticks:{color:'#94a3b8'},grid:{color:'rgba(51,65,85,.5)'}},y:{ticks:{color:'#94a3b8',callback:function(v){return(v/1000).toFixed(0)+'k'}},grid:{color:'rgba(51,65,85,.5)'}}}}});
+  if(chartS)chartS.destroy();
+  chartS=new Chart(document.getElementById('chart-saidas'),{type:'bar',data:{labels:labels,datasets:[{label:'Banco',data:d.map(function(r){return r.bankSaidas}),backgroundColor:'rgba(59,130,246,.7)',borderRadius:4},{label:'Sistema',data:d.map(function(r){return r.sysSaidas}),backgroundColor:'rgba(239,68,68,.7)',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8'}}},scales:{x:{ticks:{color:'#94a3b8'},grid:{color:'rgba(51,65,85,.5)'}},y:{ticks:{color:'#94a3b8',callback:function(v){return(v/1000).toFixed(0)+'k'}},grid:{color:'rgba(51,65,85,.5)'}}}}});
+  if(chartSaldo)chartSaldo.destroy();
+  chartSaldo=new Chart(document.getElementById('chart-saldo'),{type:'line',data:{labels:labels,datasets:[{label:'Saldo Banco',data:d.map(function(r){return r.bankBalance}),borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.1)',fill:true,tension:.3,pointRadius:5},{label:'Saldo Sistema',data:d.map(function(r){return r.sysBalance}),borderColor:'#eab308',backgroundColor:'rgba(234,179,8,.1)',fill:true,tension:.3,pointRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8'}}},scales:{x:{ticks:{color:'#94a3b8'},grid:{color:'rgba(51,65,85,.5)'}},y:{ticks:{color:'#94a3b8',callback:function(v){return(v/1000).toFixed(0)+'k'}},grid:{color:'rgba(51,65,85,.5)'}}}}});
+}
+
+function rconc(){
+  var d=gf();
+  var h='';
+  d.forEach(function(r){
+    var difEClass=r.difEntradas>=0?'vg':'vr';
+    var difSClass=r.difSaidas>=0?'vr':'vg';
+    var difSaldoClass=r.difSaldo>=0?'vg':'vr';
+    var statusBadge=Math.abs(r.difSaldo)<1?'<span class="badge ok">OK</span>':'<span class="badge dif">DIFERENCA</span>';
+    h+='<tr onclick="od(\''+r.month+'\')" style="cursor:pointer">'
+      +'<td><b>'+r.monthName+'</b></td>'
+      +'<td class="vb" style="text-align:right">R$ '+fmt(r.bankEntradas)+'</td>'
+      +'<td class="vg" style="text-align:right">R$ '+fmt(r.sysEntradas)+'</td>'
+      +'<td class="'+difEClass+'" style="text-align:right">R$ '+fmt(r.difEntradas)+'</td>'
+      +'<td class="vb" style="text-align:right">R$ '+fmt(r.bankSaidas)+'</td>'
+      +'<td class="vr" style="text-align:right">R$ '+fmt(r.sysSaidas)+'</td>'
+      +'<td class="'+difSClass+'" style="text-align:right">R$ '+fmt(r.difSaidas)+'</td>'
+      +'<td class="vb" style="text-align:right"><b>R$ '+fmt(r.bankBalance)+'</b></td>'
+      +'<td class="vy" style="text-align:right"><b>R$ '+fmt(r.sysBalance)+'</b></td>'
+      +'<td class="'+difSaldoClass+'" style="text-align:right">R$ '+fmt(r.difSaldo)+'</td>'
+      +'<td style="text-align:center">'+statusBadge+'</td></tr>';
+  });
+  document.getElementById('conc-tbody').innerHTML=h;
+}
+
+function od(month){
+  var r=RECONC.find(function(x){return x.month===month});
+  if(!r)return;
+  var h='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">'
+    +'<div style="text-align:center;padding:12px;background:rgba(59,130,246,.12);border-radius:8px"><div style="font-size:11px;color:#94a3b8">Entradas Banco</div><div style="font-size:16px;font-weight:700;color:#3b82f6">R$ '+fmt(r.bankEntradas)+'</div></div>'
+    +'<div style="text-align:center;padding:12px;background:rgba(34,197,94,.12);border-radius:8px"><div style="font-size:11px;color:#94a3b8">Entradas Sistema</div><div style="font-size:16px;font-weight:700;color:#22c55e">R$ '+fmt(r.sysEntradas)+'</div></div>'
+    +'<div style="text-align:center;padding:12px;background:rgba(59,130,246,.12);border-radius:8px"><div style="font-size:11px;color:#94a3b8">Saidas Banco</div><div style="font-size:16px;font-weight:700;color:#3b82f6">R$ '+fmt(r.bankSaidas)+'</div></div>'
+    +'<div style="text-align:center;padding:12px;background:rgba(239,68,68,.12);border-radius:8px"><div style="font-size:11px;color:#94a3b8">Saidas Sistema</div><div style="font-size:16px;font-weight:700;color:#ef4444">R$ '+fmt(r.sysSaidas)+'</div></div></div>';
+  h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">'
+    +'<div style="text-align:center;padding:12px;background:rgba(59,130,246,.12);border-radius:8px"><div style="font-size:11px;color:#94a3b8">Saldo Banco</div><div style="font-size:18px;font-weight:700;color:#3b82f6">R$ '+fmt(r.bankBalance)+'</div></div>'
+    +'<div style="text-align:center;padding:12px;background:rgba(234,179,8,.12);border-radius:8px"><div style="font-size:11px;color:#94a3b8">Saldo Sistema</div><div style="font-size:18px;font-weight:700;color:#eab308">R$ '+fmt(r.sysBalance)+'</div></div>'
+    +'<div style="text-align:center;padding:12px;background:'+(r.difSaldo>=0?'rgba(34,197,94,.12)':'rgba(239,68,68,.12)')+';border-radius:8px"><div style="font-size:11px;color:#94a3b8">Diferenca</div><div style="font-size:18px;font-weight:700;color:'+(r.difSaldo>=0?'#22c55e':'#ef4444')+'">R$ '+fmt(r.difSaldo)+'</div></div></div>';
+  var ajuste=r.ajuste;
+  if(Math.abs(ajuste)>=1){
+    var aType=ajuste>=0?'Entrada':'Saida';
+    var aColor=ajuste>=0?'#22c55e':'#ef4444';
+    h+='<div style="padding:16px;background:rgba('+(ajuste>=0?'34,197,94':'239,68,68')+',.08);border-radius:8px;border:1px solid '+aColor+'20">';
+    h+='<div style="font-size:13px;color:#94a3b8;margin-bottom:4px">Ajuste necessario no sistema:</div>';
+    h+='<div style="font-size:20px;font-weight:700;color:'+aColor+'">Registrar '+aType+' de R$ '+fmt(Math.abs(ajuste))+'</div></div>';
+  } else {
+    h+='<div style="padding:16px;background:rgba(34,197,94,.08);border-radius:8px;border:1px solid #22c55e20"><div style="font-size:16px;font-weight:600;color:#22c55e">Saldos conciliados</div></div>';
+  }
+  document.getElementById('modal-title').textContent='Detalhes - '+r.monthName;
+  document.getElementById('modal-body').innerHTML=h;
+  document.getElementById('modal').classList.add('on');
+}
+
+function cm(){document.getElementById('modal').classList.remove('on')}
+document.getElementById('modal').addEventListener('click',function(e){if(e.target===this)cm()});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')cm()});
+
+function raj(){
+  var d=gf();
+  var totalAdjPos=0,totalAdjNeg=0,adjCount=0;
+  d.forEach(function(r){if(Math.abs(r.ajuste)>=1){if(r.ajuste>0)totalAdjPos+=r.ajuste;else totalAdjNeg+=Math.abs(r.ajuste);adjCount++}});
+  var kh='';
+  kh+='<div class="kc"><div class="kl">Meses com Diferenca</div><div class="kv y">'+adjCount+'</div><div class="ks">De '+d.length+' meses</div></div>';
+  kh+='<div class="kc"><div class="kl">Total Entradas Necessarias</div><div class="kv g">R$ '+fmt(totalAdjPos)+'</div><div class="ks">Para aumentar saldo sistema</div></div>';
+  kh+='<div class="kc"><div class="kl">Total Saidas Necessarias</div><div class="kv r">R$ '+fmt(totalAdjNeg)+'</div><div class="ks">Para diminuir saldo sistema</div></div>';
+  kh+='<div class="kc"><div class="kl">Ajuste Liquido Final</div><div class="kv '+(totalAdjPos-totalAdjNeg>=0?'g':'r')+'">R$ '+fmt(totalAdjPos-totalAdjNeg)+'</div><div class="ks">'+(totalAdjPos-totalAdjNeg>=0?'Entrada liquida':'Saida liquida')+'</div></div>';
+  document.getElementById('kpi-ajustes').innerHTML=kh;
+  var listH='';
+  d.forEach(function(r){
+    var ajuste=r.ajuste;
+    if(Math.abs(ajuste)<1){listH+='<div class="adj-card neutral"><div class="adj-title">'+r.monthName+' - Conciliado</div><div class="adj-detail">Saldo banco: R$ '+fmt(r.bankBalance)+' | Saldo sistema: R$ '+fmt(r.sysBalance)+'</div></div>';return}
+    var isEntrada=ajuste>0;
+    listH+='<div class="adj-card '+(isEntrada?'in':'out')+'"><div class="adj-title">'+r.monthName+'</div><div class="adj-detail">Saldo banco: <b>R$ '+fmt(r.bankBalance)+'</b><br>Saldo sistema: <b>R$ '+fmt(r.sysBalance)+'</b><br>Diferenca: <b style="color:'+(r.difSaldo>=0?'#22c55e':'#ef4444')+'">R$ '+fmt(r.difSaldo)+'</b></div><div class="adj-valor" style="color:'+(isEntrada?'#22c55e':'#ef4444')+'">Registrar '+(isEntrada?'ENTRADA':'SAIDA')+' de R$ '+fmt(Math.abs(ajuste))+'</div></div>';
+  });
+  document.getElementById('ajustes-list').innerHTML=listH;
+  var th='';
+  d.forEach(function(r){
+    var ajuste=r.ajuste;
+    th+='<tr><td><b>'+r.monthName+'</b></td><td class="vb" style="text-align:right">R$ '+fmt(r.bankBalance)+'</td><td class="vy" style="text-align:right">R$ '+fmt(r.sysBalance)+'</td><td class="'+(r.difSaldo>=0?'vg':'vr')+'" style="text-align:right">R$ '+fmt(r.difSaldo)+'</td><td class="'+(ajuste>=0?'vg':'vr')+'" style="text-align:right"><b>R$ '+fmt(Math.abs(ajuste))+'</b></td><td style="text-align:center">'+(Math.abs(ajuste)<1?'<span class="badge ok">OK</span>':(ajuste>=0?'<span class="badge adj">Entrada</span>':'<span class="badge dif">Saida</span>'))+'</td></tr>';
+  });
+  document.getElementById('ajustes-tbody').innerHTML=th;
+}
+
+// ========== ANALYTICAL TAB ==========
+function initAnalitico(){
+  var sel=document.getElementById('sel-mes');
+  var h='<option value="">Selecione o mes...</option>';
+  RECONC.forEach(function(r){h+='<option value="'+r.month+'">'+r.monthName+'</option>'});
+  sel.innerHTML=h;
+}
+
+function getBankTxByMonth(mk){
+  return TX_DATA.filter(function(t){return gm(t.date)===mk}).map(function(t,i){
+    return{date:t.date,desc:t.lanc||'',pessoa:t.razao||'',entrada:t.valor>=0?t.valor:0,saida:t.valor<0?Math.abs(t.valor):0,fonte:'banco',cnpj:t.cnpj||'',id:'B'+i}
+  }).sort(function(a,b){return pd(a.date)-pd(b.date)});
+}
+
+function getSysTxByMonth(mk){
+  return SYSTEM_TX.filter(function(t){return t.month===mk}).map(function(t,i){
+    return{date:t.date,desc:t.desc||'',pessoa:t.pessoa||'',entrada:t.entrada,saida:t.saida,fonte:'sistema',plano:t.plano||'',centro:t.centro||'',id:'S'+i}
+  }).sort(function(a,b){return pd(a.date)-pd(b.date)});
+}
+
+// Match transactions by DATE + VALUE
+function matchTransactions(bankTx, sysTx){
+  var matchedBank={};
+  var matchedSys={};
+  var matches=[];
+
+  // For each bank transaction, find a matching system transaction
+  bankTx.forEach(function(bt,bi){
+    if(matchedBank[bi])return;
+    var bVal=bt.entrada>0?bt.entrada:bt.saida;
+
+    sysTx.forEach(function(st,si){
+      if(matchedSys[si])return;
+      var sVal=st.entrada>0?st.entrada:st.saida;
+
+      // Match by: same date AND same value (with 0.01 tolerance for rounding)
+      if(bt.date===st.date && Math.abs(bVal-sVal)<0.01){
+        // Also check same type (entrada vs saida)
+        if((bt.entrada>0 && st.entrada>0) || (bt.saida>0 && st.saida>0)){
+          matchedBank[bi]=true;
+          matchedSys[si]=true;
+          matches.push({bank:bt,sys:st,valor:bVal});
+          return;
+        }
+      }
+    });
+  });
+
+  var unmatchedBank=bankTx.filter(function(bt,bi){return !matchedBank[bi]});
+  var unmatchedSys=sysTx.filter(function(st,si){return !matchedSys[si]});
+
+  return{matches:matches,unmatchedBank:unmatchedBank,unmatchedSys:unmatchedSys,matchedCount:matches.length};
+}
+
+function renderAnalitico(){
+  var mk=document.getElementById('sel-mes').value;
+  var tipo=document.getElementById('sel-tipo').value;
+  var busca=document.getElementById('sel-busca').value.toLowerCase();
+
+  if(!mk){
+    document.getElementById('ana-summary').innerHTML='';
+    document.getElementById('ana-diff-list').innerHTML='<p style="color:#94a3b8">Selecione um mes para ver o analitico.</p>';
+    document.getElementById('bank-tx-list').innerHTML='';
+    document.getElementById('sys-tx-list').innerHTML='';
+    document.getElementById('bank-count').textContent='';
+    document.getElementById('sys-count').textContent='';
+    document.getElementById('ana-all-tbody').innerHTML='';
+    return;
+  }
+
+  var bankTx=getBankTxByMonth(mk);
+  var sysTx=getSysTxByMonth(mk);
+
+  // Apply filters BEFORE matching
+  if(tipo==='entrada'){bankTx=bankTx.filter(function(t){return t.entrada>0});sysTx=sysTx.filter(function(t){return t.entrada>0})}
+  if(tipo==='saida'){bankTx=bankTx.filter(function(t){return t.saida>0});sysTx=sysTx.filter(function(t){return t.saida>0})}
+  if(busca){
+    bankTx=bankTx.filter(function(t){return(t.desc+' '+t.pessoa).toLowerCase().indexOf(busca)>=0});
+    sysTx=sysTx.filter(function(t){return(t.desc+' '+t.pessoa+' '+t.plano).toLowerCase().indexOf(busca)>=0});
+  }
+
+  // Match by date + value
+  var result=matchTransactions(bankTx, sysTx);
+
+  var bankTotalE=bankTx.reduce(function(s,t){return s+t.entrada},0);
+  var bankTotalS=bankTx.reduce(function(s,t){return s+t.saida},0);
+  var sysTotalE=sysTx.reduce(function(s,t){return s+t.entrada},0);
+  var sysTotalS=sysTx.reduce(function(s,t){return s+t.saida},0);
+
+  // Unmatched totals
+  var unmatchBankE=result.unmatchedBank.reduce(function(s,t){return s+t.entrada},0);
+  var unmatchBankS=result.unmatchedBank.reduce(function(s,t){return s+t.saida},0);
+  var unmatchSysE=result.unmatchedSys.reduce(function(s,t){return s+t.entrada},0);
+  var unmatchSysS=result.unmatchedSys.reduce(function(s,t){return s+t.saida},0);
+
+  // Summary
+  var sh='';
+  sh+='<div class="summary-item"><div class="label">Combinados (Data+Valor)</div><div class="value" style="color:#22c55e">'+result.matchedCount+'</div></div>';
+  sh+='<div class="summary-item"><div class="label">So no Banco</div><div class="value" style="color:#3b82f6">'+result.unmatchedBank.length+'</div></div>';
+  sh+='<div class="summary-item"><div class="label">So no Sistema</div><div class="value" style="color:#a855f7">'+result.unmatchedSys.length+'</div></div>';
+  sh+='<div class="summary-item"><div class="label">Valor So Banco (E)</div><div class="value" style="color:#3b82f6">R$ '+fmt(unmatchBankE)+'</div></div>';
+  sh+='<div class="summary-item"><div class="label">Valor So Banco (S)</div><div class="value" style="color:#3b82f6">R$ '+fmt(unmatchBankS)+'</div></div>';
+  sh+='<div class="summary-item"><div class="label">Valor So Sistema (E)</div><div class="value" style="color:#a855f7">R$ '+fmt(unmatchSysE)+'</div></div>';
+  sh+='<div class="summary-item"><div class="label">Valor So Sistema (S)</div><div class="value" style="color:#a855f7">R$ '+fmt(unmatchSysS)+'</div></div>';
+  document.getElementById('ana-summary').innerHTML=sh;
+
+  // ========== UNMATCHED SYSTEM TRANSACTIONS (what system has that bank doesn't) ==========
+  // Group by value ranges for better analysis
+  var dlH='';
+
+  // Section 1: Unmatched System Transactions grouped by value
+  dlH+='<h4 style="color:#a855f7;margin-bottom:12px">Transacoes SO NO SISTEMA (sem par no banco por data+valor)</h4>';
+  if(result.unmatchedSys.length===0){
+    dlH+='<p style="color:#94a3b8;padding:12px;background:#0f172a;border-radius:8px">Todas as transacoes do sistema foram encontradas no banco.</p>';
+  } else {
+    // Group by entrada/saida
+    var sysOnlyEntradas=result.unmatchedSys.filter(function(t){return t.entrada>0});
+    var sysOnlySaidas=result.unmatchedSys.filter(function(t){return t.saida>0});
+
+    if(sysOnlyEntradas.length>0){
+      dlH+='<div style="margin-bottom:16px">';
+      dlH+='<div style="font-size:13px;color:#22c55e;margin-bottom:8px">Entradas so no sistema: '+sysOnlyEntradas.length+' | Total: R$ '+fmt(sysOnlyEntradas.reduce(function(s,t){return s+t.entrada},0))+'</div>';
+      dlH+='<div style="max-height:300px;overflow-y:auto">';
+      sysOnlyEntradas.sort(function(a,b){return b.entrada-a.entrada}).forEach(function(t){
+        dlH+='<div class="tx-row entrada" style="padding:8px 12px">';
+        dlH+='<span class="tx-date">'+t.date+'</span>';
+        dlH+='<span class="tx-desc">'+t.desc+'</span>';
+        dlH+='<span class="tx-valor">+'+fmt(t.entrada)+'</span>';
+        dlH+='</div>';
+        if(t.pessoa)dlH+='<div style="padding:2px 12px 4px 92px;font-size:11px;color:#64748b">Pessoa: '+t.pessoa+'</div>';
+      });
+      dlH+='</div></div>';
+    }
+
+    if(sysOnlySaidas.length>0){
+      dlH+='<div style="margin-bottom:16px">';
+      dlH+='<div style="font-size:13px;color:#ef4444;margin-bottom:8px">Saidas so no sistema: '+sysOnlySaidas.length+' | Total: R$ '+fmt(sysOnlySaidas.reduce(function(s,t){return s+t.saida},0))+'</div>';
+      dlH+='<div style="max-height:300px;overflow-y:auto">';
+      sysOnlySaidas.sort(function(a,b){return b.saida-a.saida}).forEach(function(t){
+        dlH+='<div class="tx-row saida" style="padding:8px 12px">';
+        dlH+='<span class="tx-date">'+t.date+'</span>';
+        dlH+='<span class="tx-desc">'+t.desc+'</span>';
+        dlH+='<span class="tx-valor">-'+fmt(t.saida)+'</span>';
+        dlH+='</div>';
+        if(t.pessoa)dlH+='<div style="padding:2px 12px 4px 92px;font-size:11px;color:#64748b">Pessoa: '+t.pessoa+'</div>';
+      });
+      dlH+='</div></div>';
+    }
+  }
+
+  // Section 2: Unmatched Bank Transactions
+  dlH+='<h4 style="color:#3b82f6;margin:20px 0 12px">Transacoes SO NO BANCO (sem par no sistema por data+valor)</h4>';
+  if(result.unmatchedBank.length===0){
+    dlH+='<p style="color:#94a3b8;padding:12px;background:#0f172a;border-radius:8px">Todas as transacoes do banco foram encontradas no sistema.</p>';
+  } else {
+    var bankOnlyEntradas=result.unmatchedBank.filter(function(t){return t.entrada>0});
+    var bankOnlySaidas=result.unmatchedBank.filter(function(t){return t.saida>0});
+
+    if(bankOnlyEntradas.length>0){
+      dlH+='<div style="margin-bottom:16px">';
+      dlH+='<div style="font-size:13px;color:#22c55e;margin-bottom:8px">Entradas so no banco: '+bankOnlyEntradas.length+' | Total: R$ '+fmt(bankOnlyEntradas.reduce(function(s,t){return s+t.entrada},0))+'</div>';
+      dlH+='<div style="max-height:300px;overflow-y:auto">';
+      bankOnlyEntradas.sort(function(a,b){return b.entrada-a.entrada}).forEach(function(t){
+        dlH+='<div class="tx-row entrada" style="padding:8px 12px">';
+        dlH+='<span class="tx-date">'+t.date+'</span>';
+        dlH+='<span class="tx-desc">'+t.desc+'</span>';
+        dlH+='<span class="tx-valor">+'+fmt(t.entrada)+'</span>';
+        dlH+='</div>';
+        if(t.pessoa)dlH+='<div style="padding:2px 12px 4px 92px;font-size:11px;color:#64748b">'+t.pessoa+'</div>';
+      });
+      dlH+='</div></div>';
+    }
+
+    if(bankOnlySaidas.length>0){
+      dlH+='<div style="margin-bottom:16px">';
+      dlH+='<div style="font-size:13px;color:#ef4444;margin-bottom:8px">Saidas so no banco: '+bankOnlySaidas.length+' | Total: R$ '+fmt(bankOnlySaidas.reduce(function(s,t){return s+t.saida},0))+'</div>';
+      dlH+='<div style="max-height:300px;overflow-y:auto">';
+      bankOnlySaidas.sort(function(a,b){return b.saida-a.saida}).forEach(function(t){
+        dlH+='<div class="tx-row saida" style="padding:8px 12px">';
+        dlH+='<span class="tx-date">'+t.date+'</span>';
+        dlH+='<span class="tx-desc">'+t.desc+'</span>';
+        dlH+='<span class="tx-valor">-'+fmt(t.saida)+'</span>';
+        dlH+='</div>';
+        if(t.pessoa)dlH+='<div style="padding:2px 12px 4px 92px;font-size:11px;color:#64748b">'+t.pessoa+'</div>';
+      });
+      dlH+='</div></div>';
+    }
+  }
+
+  // Section 3: Matched transactions summary
+  dlH+='<h4 style="color:#22c55e;margin:20px 0 12px">Transacoes Combinadas (Data+Valor igual)</h4>';
+  dlH+='<div style="padding:12px;background:#0f172a;border-radius:8px;margin-bottom:8px">';
+  dlH+='<div style="font-size:13px">'+result.matchedCount+' transacoes combinadas</div>';
+  if(result.matches.length>0){
+    var matchTotalE=result.matches.reduce(function(s,m){return s+(m.bank.entrada>0?m.valor:0)},0);
+    var matchTotalS=result.matches.reduce(function(s,m){return s+(m.bank.saida>0?m.valor:0)},0);
+    dlH+='<div style="font-size:12px;color:#94a3b8;margin-top:4px">Entradas combinadas: R$ '+fmt(matchTotalE)+' | Saidas combinadas: R$ '+fmt(matchTotalS)+'</div>';
+  }
+  dlH+='</div>';
+
+  document.getElementById('ana-diff-list').innerHTML=dlH;
+
+  // Bank transactions list (with matched indicator)
+  var matchedBankIds={};
+  result.matches.forEach(function(m){matchedBankIds[m.bank.id]=true});
+  var bListH='';
+  bankTx.forEach(function(t){
+    var isMatched=matchedBankIds[t.id];
+    bListH+='<div class="tx-row '+(t.entrada>0?'entrada':'saida')+(isMatched?' matched':'')+'">';
+    bListH+='<span class="tx-date">'+t.date+'</span>';
+    bListH+='<span class="tx-desc" title="'+t.desc+(t.pessoa?' - '+t.pessoa:'')+'">'+t.desc+'</span>';
+    bListH+='<span class="tx-valor">'+(t.entrada>0?'+'+fmt(t.entrada):'-'+fmt(t.saida))+'</span>';
+    bListH+='</div>';
+    if(t.pessoa)bListH+='<div style="padding:2px 20px 6px 92px;font-size:11px;color:#64748b">'+t.pessoa+'</div>';
+  });
+  document.getElementById('bank-tx-list').innerHTML=bListH||'<div style="padding:20px;color:#94a3b8;text-align:center">Nenhuma transacao</div>';
+  document.getElementById('bank-count').textContent=bankTx.length+' tx | E: R$ '+fmt(bankTotalE)+' | S: R$ '+fmt(bankTotalS)+' | Match: '+result.matchedCount;
+
+  // System transactions list (with matched indicator)
+  var matchedSysIds={};
+  result.matches.forEach(function(m){matchedSysIds[m.sys.id]=true});
+  var sListH='';
+  sysTx.forEach(function(t){
+    var isMatched=matchedSysIds[t.id];
+    sListH+='<div class="tx-row '+(t.entrada>0?'entrada':'saida')+(isMatched?' matched':'')+'">';
+    sListH+='<span class="tx-date">'+t.date+'</span>';
+    sListH+='<span class="tx-desc" title="'+t.desc+(t.pessoa?' - '+t.pessoa:'')+'">'+t.desc+'</span>';
+    sListH+='<span class="tx-valor">'+(t.entrada>0?'+'+fmt(t.entrada):'-'+fmt(t.saida))+'</span>';
+    sListH+='</div>';
+    if(t.pessoa)sListH+='<div style="padding:2px 20px 6px 92px;font-size:11px;color:#64748b">'+t.pessoa+'</div>';
+  });
+  document.getElementById('sys-tx-list').innerHTML=sListH||'<div style="padding:20px;color:#94a3b8;text-align:center">Nenhuma transacao</div>';
+  document.getElementById('sys-count').textContent=sysTx.length+' tx | E: R$ '+fmt(sysTotalE)+' | S: R$ '+fmt(sysTotalS)+' | Match: '+result.matchedCount;
+
+  // All transactions consolidated table with match status
+  var allTx=[];
+  bankTx.forEach(function(t){
+    var isMatched=matchedBankIds[t.id];
+    allTx.push({date:t.date,desc:t.desc,pessoa:t.pessoa,entrada:t.entrada,saida:t.saida,fonte:'banco',matched:isMatched});
+  });
+  sysTx.forEach(function(t){
+    var isMatched=matchedSysIds[t.id];
+    allTx.push({date:t.date,desc:t.desc,pessoa:t.pessoa,entrada:t.entrada,saida:t.saida,fonte:'sistema',matched:isMatched});
+  });
+  allTx.sort(function(a,b){
+    var da=pd(a.date),db=pd(b.date);
+    if(da-db!==0)return da-db;
+    // Unmatched first
+    if(a.matched!==b.matched)return a.matched?1:-1;
+    if(a.fonte!==b.fonte)return a.fonte==='banco'?-1:1;
+    return 0;
+  });
+
+  var ath='';
+  allTx.forEach(function(t){
+    var isBank=t.fonte==='banco';
+    var rowStyle=isBank?'background:rgba(59,130,246,.03)':'background:rgba(168,85,247,.03)';
+    if(!t.matched)rowStyle=isBank?'background:rgba(59,130,246,.1)':'background:rgba(168,85,247,.1)';
+    ath+='<tr style="'+rowStyle+'">';
+    ath+='<td>'+(isBank?'<span class="badge bank">BANCO</span>':'<span class="badge sys">SISTEMA</span>')+'</td>';
+    ath+='<td>'+t.date+'</td>';
+    ath+='<td>'+t.desc+'</td>';
+    ath+='<td style="font-size:11px;color:#94a3b8">'+t.pessoa+'</td>';
+    ath+='<td class="vg" style="text-align:right">'+(t.entrada>0?'R$ '+fmt(t.entrada):'-')+'</td>';
+    ath+='<td class="vr" style="text-align:right">'+(t.saida>0?'R$ '+fmt(t.saida):'-')+'</td>';
+    ath+='<td style="text-align:center">'+(t.matched?'<span class="badge ok">MATCH</span>':'<span class="badge dif">SEM MATCH</span>')+'</td>';
+    ath+='</tr>';
+  });
+  document.getElementById('ana-all-tbody').innerHTML=ath||'<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:20px">Selecione um mes</td></tr>';
+}
+
+// INIT
+iyf();rk();rc();rconc();raj();initAnalitico();
+</script>
+</body>
+</html>
